@@ -1,0 +1,60 @@
+#!/bin/sh
+#
+# Script for hem, home environment monitor.
+# C2015 Xun Jiang
+
+### BEGIN INIT INFO
+# Provides:        hem
+# Required-Start:  $remote_fs $syslog
+# Required-Stop:   $remote_fs $syslog
+# Default-Start:   2 3 4 5
+# Default-Stop:
+# Short-Description: Start hem daemon
+# Description:       Starts and stops the hem daemon used to
+#                    read and log home environment data from multiple sensors.
+### END INIT INFO
+
+if [ -f /etc/default/hem ]; then
+    . /etc/default/hem
+else
+    echo "No configuration file found."
+#    exit 0
+fi
+
+if [ "$HEM_DAEMON" = "no" ]; then
+    echo "hem is disabled. Please, see /etc/default/hem."
+#    exit 0
+fi
+
+HEMPYM="/home/pi/hem/hem.py"
+#STOPFILE="/home/pi/hem/hem_stop"
+PIDFILE="/var/run/hem.pid"
+
+case "$1" in
+	start)
+		echo "Starting hem daemon"
+		rm -f $STOPFILE
+		# Add delay here to allow time initialization via htpdate
+		$HEMPYM &
+		HEM_PID=$!
+		echo $HEM_PID > $PIDFILE
+		;;
+	stop)
+		echo "Stopping hem daemon"
+		if [ -f $PIDFILE ]; then
+			kill `cat $PIDFILE`
+		else
+			echo "$PIDFILE not found"
+		fi
+		rm -f $PIDFILE 
+		;;
+	restart)
+		$0 stop
+		$0 start
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1
+esac
+
+exit 0

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta  content="text/html; charset=UTF-8"  http-equiv="content-type">
+    <title>Home Environment Monitor</title>
+  </head>
+  <body>
+    <p  style="text-align: center;font-size:50px">Updated: {{ ts  }}</p>
+    <p  style="text-align: center;"></p>
+    <table  style="width: 100%;"  border="0">
+      <tbody>
+        <tr>
+          <td  style="text-align: right;"><img  style="width: 510px; height: 510px;"
+               alt="pm25"  src="static/pics/pm25.png"><br>
+          </td>
+          <td style="text-align: left; font-size:200px; color:rgb(0,153,0);">{{ pm }}
+          </td>
+        </tr>
+        <tr>
+          <td  colspan="2"  rowspan="1"><br>
+          </td>
+        </tr>
+        <tr>
+          <td  style="width: 500px;"><br>
+          </td>
+          <td  style="width: 500px;"><br>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <table  style="width: 600px; height: 60px; text-align: left; margin-left: auto; margin-right: auto;"
+       border="0">
+      <tbody>
+        <tr>
+          <td  style="height: 120px; text-align: right; width: 200px;"><img  style="width: 120px; height: 120px;"
+               alt="Temperature"  src="static/pics/temperature.png"></td>
+          <td  style="height: 120px; text-align: left; width: 120px; font-size:80px; color:rgb(255,102,0)">{{t}}
+          </td>
+          <td  style="height: 120px; text-align: right; width: 200px;"><img  style="width: 120px; height: 120px;"
+               alt="Humidity"  src="static/pics/humidity.png"></td>
+          <td  style="width: 120px; height: 120px; text-align: left; font-size:80px; color:rgb(0,0,153)">{{rh}}%</td>
+        </tr>
+        <tr>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p><br>
+    </p>
+  </body>
+</html>
