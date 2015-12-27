@@ -6,7 +6,13 @@ import datetime
 import os
 
 def modVout(orig) :
-    return orig*16
+    if orig<10 :
+        return orig*5
+    if orig<20 :
+        return orig*3
+    if orig<40 :
+        return orig*1.5
+    return orig
 
 def headerFinder(ttyPort) :
     while True :
@@ -22,6 +28,9 @@ print "Port opened."
 headerFinder(port)
 while True :
     rcv = port.read(7)
+    if rcv[0] != '\xaa' or rcv[6] != '\xff':
+        headerFinder(port)
+        continue
     origV = ord(rcv[1])*256+ord(rcv[2])
     modV = modVout(origV)
     modVH = modV>>8
@@ -34,6 +43,5 @@ while True :
     origstr = ':'.join(map(lambda c: format(ord(c), "02x"), rcv))
     modstr = ':'.join(map(lambda c: format(ord(c), "02x"), wrt))
     print origstr+" --> "+modstr
-    if rcv[0] != '\xaa' or rcv[6] != '\xff':
-        headerFinder(port)
+
     
