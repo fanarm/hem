@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta  content="text/html; charset=UTF-8"  http-equiv="content-type">
+    <title>HEM History</title>
+  </head>
+  <body> 
+  <table style="text-align:center; font-size:40px;">
+    <tr>
+      {% for col in header.split() %} 
+      <th>&nbsp;{{ col }}&nbsp;</th>
+      {% endfor %}
+    </tr>
+    {% for row in entries %} 
+    <tr>
+      {% for item in row.split() %}
+      <td>{{ item }}&nbsp;</td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </body>
+</html>
