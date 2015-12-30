@@ -42,17 +42,17 @@ def showStatus():
    pmvalue = rec_mo.group(2)
    tvalue = rec_mo.group(3)
    rhvalue = rec_mo.group(4)
-   curtime = datetime.datetime.now()
-   timestr = curtime.strftime("%Y_%m_%d")
-   return render_template('hem_template.html', ts=timestamp, pm=pmvalue, 
-                           pm25_chart_path=CHART_URL_PREFIX+"hem_pm25_"+timestr+".png",
-                           t=tvalue, rh=rhvalue,
-                           t_chart_path=CHART_URL_PREFIX+"hem_temp_"+timestr+".png",
-                           rh_chart_path=CHART_URL_PREFIX+"hem_humid_"+timestr+".png" )
+   return render_template('hem_template.html', ts=timestamp, pm=pmvalue, t=tvalue, rh=rhvalue)
 
 @app.route("/chart/<path:filename>")
-def servePics(filename):
+def serveChart(filename):
    return send_from_directory("/home/pi/hem/pic", filename)
+
+@app.route("/chartnow/<path:filename>")
+def serveNowChart(filename):
+   curtime = datetime.datetime.now()
+   timestr = curtime.strftime("_%Y_%m_%d.png")
+   return send_from_directory("/home/pi/hem/pic", filename+timestr)
 
 if __name__ == "__main__" :
    app.run('0.0.0.0')
