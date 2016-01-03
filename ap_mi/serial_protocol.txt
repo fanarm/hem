@@ -1,0 +1,52 @@
+Command (Master->Slave)
+
+Byte	Content
+------------------------
+0	Header/Intent: 
+		0x65: Command to dust sensor interpreter for Xiaomi
+1	Command: R/W bit(Bit 7) | name(Bit 6:0)
+		R/W bit(Bit 7)
+			0: Read/Get
+			1: Write/Set
+		Name(Bit 6:0)
+			0x01: interpreter mode
+			0x10: fixed PM output value
+			0x11: fixed Vref output value
+			0x15: Vcc enable for PM sensor 
+			0x30: scaling response curve - threshold for range 0
+			0x31: scaling response curve - threshold for range 1
+			0x40: scaling response curve - value for range 0
+			0x41: scaling response curve - value for range 1
+				...
+			0x4F: scaling response curve - value for range 7
+			0x50: [RO]latest raw PM input
+			0x51: sample count for averaging PM input 
+			0x52: [RO]average PM input
+			0x60: [RO]latest raw Vref input
+			0x61: sample count for averaging Vref input 
+			0x62: [RO]average Vref input
+2/3	Data byte 0/1 (little endian, data byte 0 is LSB)
+	Write Command: the value to be written to the name.
+		Name - interpreter mode
+			0x00:	Off
+			0x01:	Pass-through
+			0x02:	Fixed output
+			0x03:	Scaling 
+	Read Command
+		Should be 0x00
+
+4	Verification: (Sum of byte 1,2 and 3)
+
+
+
+Response (Slave->Master)
+
+Byte	Content
+------------------------
+0	Header/Intent:
+		0xE5: Response from dust sensor interpreter for Xiaomi
+1	Response ID: corresponding command byte.
+2	Data byte 0 (little endian, LSB)
+3	Data byte 1
+4	Verification: (Sum of byte 1, 2 and 3)
+
