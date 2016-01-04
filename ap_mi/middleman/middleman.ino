@@ -1,4 +1,20 @@
 /*
+  Copyright 2016, Xun Jiang
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+  
+ 
+  
   Code for a gadget which sit in middle of dust sensor of an air purifier and purifier's digital logic board.
   
   The purpose of gadget is to modify the raw reading from dust sensor, with the assistant from a bluetooth serial 
@@ -7,12 +23,18 @@
   Two serial ports used. Hardware serial is used for receiving dust sensor's data and sending modified data to purifier.
   Software serial on digital pin 8(RX) and 9(TX) are used for communicating with smart home host via bluetooth serial.
   
- The circuit: 
+ The circuit for use with SoftwareSerial
  Running on Sparkfun Pro Micro.
- * RX for Dust sensor is digital pin 8 (PB4)
- * TX for Purifier is digital pin 9 (PB5)
- * RX for bluetooth is HW RX (digital pin 0, PD2)
- * TX for bluetooth is HW TX (digital pin 0, PD3)
+ * RX for bluetooth is SW RX    (digital pin 8, PB4/PCINT4)
+ * TX for bluetooth is SW TX    (digital pin 9, PB5)
+ * RX for Dust sensor is HW RX  (digital pin 0, PD2)
+ * TX for Purifier is HW TX     (digital pin 1, PD3)
+
+ The circuit for use with AltSoftSerial
+ * RX for bluetooth is SW RX    (digital pin 4, PD4/ICP1)
+ * TX for bluetooth is SW TX    (digital pin 9, PB5/OC1A)
+ * RX for Dust sensor is HW RX  (digital pin 0, PD2)
+ * TX for Purifier is HW TX     (digital pin 1, PD3)
 
  */
 
@@ -153,6 +175,8 @@ void setup() {
 }
 
 void loop() {
+  Serial.print("middleman:loop()\n");
+  delay(1000);
   if ( (!mm_data.vcc_en) && (mm_data.mode==COMMAND_VALUE_INTPRT_MODE_FIXED)) {
       pm25_uart.writeData(mm_data.fixed_output);
       delay(1000);
