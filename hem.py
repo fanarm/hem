@@ -33,10 +33,12 @@ SHM_SIZE_HEM_APMI_DATA = 16
 LOG_FILE = "/home/pi/hem/log/hem.log"
 PLOT_LOG_FILE_NAME_BASE = "/home/pi/hem/log/pmth_plot_"
 RUNNING_TIME_OFFSET_SEC = 6.4
+BTH_NAME = 'hci0'
+BTS_ADDR = '98:D3:32:30:39:59'
 
 ## Hourly array to set polling interval
-TARGET_SAMPLES_OVER_HOURS = [  12,  12,  2,  2,  2,  2,  3, 12, 12, 12,  6,  6, 
-                               6,  6,  6,  6, 12, 12, 12, 12, 12, 12,  6,  3]
+TARGET_SAMPLES_OVER_HOURS = [  12,  6,  6,  6,  6,  6,  12, 30, 30, 12,  12,  12, 
+                               30,  12,  12,  12, 30, 30, 60, 60, 60, 30,  30,  12]
 PM25_SMOOTHING_SAMPLES = 5
 PM25_MAX_RETRIES = 5
 AP_MI_SENSOR_CONSTANT = 2.428
@@ -158,6 +160,10 @@ def calculate_sleep_target(timenow) :
     else :
         return interval
 
+def bluetoothRecovery() :
+    subprocess.call(['hciconfig',BTH_NAME,'reset'])
+    subprocess.Popen(['rfcomm','connect',BTH_NAME,BTS_ADDR])
+
 logging.basicConfig(filename=LOG_FILE)
 try:
    GPIO.setmode(GPIO.BCM)
@@ -175,11 +181,16 @@ try:
        timestr = curtime.strftime("%Y/%m/%d %H:%M:%S")
        rec = timestr + " PM2.5:"+repr(pm25s)+ " Temp:"+repr(t)+ " RH:"+repr(h)+"%\n"
        #print rec
-       print_log(REGULAR_DATA_FILE,'w',rec)
-       if apmi.sendFixedOutput(int(pm25s/AP_MI_SENSOR_CONSTANT))!=True :
-           print_log_with_time(LOG_FILE,'a',"[Error] hem.py fails to update PM2.5 sensor on AP_mi.\n")
+       #print_log(REGULAR_DATA_FILE,'w',rec)
        shared_memory_write(SHM_NAME_HEM_PRESENT_DATA, SHM_SIZE_HEM_PRESENT_DATA,
                         rec)
+       try:
+           if apmi.sendFixedOutput(int(pm25s/AP_MI_SENSOR_CONSTANT))!=True :
+               print_log_with_time(LOG_FILE,'a',"[Error] hem.py fails to update PM2.5 sensor on AP_mi.\n")
+       except Exception :
+              logger = logging.getLogger()
+              logger.exception("Exception in ap_mi bluetooth communication. Resetting bluetooth.") 
+              bluetoothRecovery()
        plotfile = PLOT_LOG_FILE_NAME_BASE+curtime.strftime("%Y_%m_%d")+".log"
        if not os.path.exists(plotfile) :
            print_log(plotfile,'w',"Date Time PM2.5 Temp Humidity\n")
