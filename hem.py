@@ -23,6 +23,7 @@ import datetime
 import RPi.GPIO as GPIO
 import os
 import posix_ipc as ipc
+import logging
 
 REGULAR_DATA_FILE = "/home/pi/hem/log/pmth.log"
 SHM_NAME_HEM_PRESENT_DATA = "/hem_data"
@@ -157,31 +158,35 @@ def calculate_sleep_target(timenow) :
     else :
         return interval
 
-GPIO.setmode(GPIO.BCM)
-GPIO.setwarnings(False)
-pms = PMSensor("/dev/ttyAMA0",18)
-pms.initialize()
-ths = SHT(1)
-apmi = ap_mi("/dev/rfcomm0")
-print_log_with_time(LOG_FILE,'a',"[Info] hem.py starts polling loop.\n")
-while True:
-    pm25s = pms.readPM25()
-    t = ths.readTemp()
-    h = ths.readHumid()
-    curtime = datetime.datetime.now()
-    timestr = curtime.strftime("%Y/%m/%d %H:%M:%S")
-    rec = timestr + " PM2.5:"+repr(pm25s)+ " Temp:"+repr(t)+ " RH:"+repr(h)+"%\n"
-    print rec
-    print_log(REGULAR_DATA_FILE,'w',rec)
-    if apmi.sendFixedOutput(int(pm25s/AP_MI_SENSOR_CONSTANT))!=True :
-        print_log_with_time(LOG_FILE,'a',"[Error] hem.py fails to update PM2.5 sensor on AP_mi.\n")
-    shared_memory_write(SHM_NAME_HEM_PRESENT_DATA, SHM_SIZE_HEM_PRESENT_DATA,
+logging.basicConfig(filename=LOG_FILE)
+try:
+   GPIO.setmode(GPIO.BCM)
+   GPIO.setwarnings(False)
+   pms = PMSensor("/dev/ttyAMA0",18)
+   pms.initialize()
+   ths = SHT(1)
+   apmi = ap_mi("/dev/rfcomm0")
+   print_log_with_time(LOG_FILE,'a',"[Info] hem.py starts polling loop.\n")
+   while True:
+       pm25s = pms.readPM25()
+       t = ths.readTemp()
+       h = ths.readHumid()
+       curtime = datetime.datetime.now()
+       timestr = curtime.strftime("%Y/%m/%d %H:%M:%S")
+       rec = timestr + " PM2.5:"+repr(pm25s)+ " Temp:"+repr(t)+ " RH:"+repr(h)+"%\n"
+       #print rec
+       print_log(REGULAR_DATA_FILE,'w',rec)
+       if apmi.sendFixedOutput(int(pm25s/AP_MI_SENSOR_CONSTANT))!=True :
+           print_log_with_time(LOG_FILE,'a',"[Error] hem.py fails to update PM2.5 sensor on AP_mi.\n")
+       shared_memory_write(SHM_NAME_HEM_PRESENT_DATA, SHM_SIZE_HEM_PRESENT_DATA,
                         rec)
-    plotfile = PLOT_LOG_FILE_NAME_BASE+curtime.strftime("%Y_%m_%d")+".log"
-    if not os.path.exists(plotfile) :
-        print_log(plotfile,'w',"Date Time PM2.5 Temp Humidity\n")
-    print_log(plotfile,'a',timestr+" "+repr(pm25s)+" "+repr(t)+" "+repr(h)+"\n")
-    time.sleep(calculate_sleep_target(curtime))
-    pms.flush()
-    
+       plotfile = PLOT_LOG_FILE_NAME_BASE+curtime.strftime("%Y_%m_%d")+".log"
+       if not os.path.exists(plotfile) :
+           print_log(plotfile,'w',"Date Time PM2.5 Temp Humidity\n")
+       print_log(plotfile,'a',timestr+" "+repr(pm25s)+" "+repr(t)+" "+repr(h)+"\n")
+       time.sleep(calculate_sleep_target(curtime))
+       pms.flush()
+except (Exception,KeyboardInterrupt):
+   logger = logging.getLogger()
+   logger.exception("Fatal exception in hem.py execution") 
     
