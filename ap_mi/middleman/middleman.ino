@@ -160,13 +160,13 @@ bool PM25OutputProcessor<S>::packetCheck(uint8_t *buf) {
   return (sum==buf[5]);
 }
 
-//SIMSProcessor<AltSoftSerial> sims_uart(new AltSoftSerial(8,9));
-SIMSProcessor<SoftwareSerial> sims_uart(new SoftwareSerial(8,9));
+SIMSProcessor<AltSoftSerial> sims_uart(new AltSoftSerial(4,9));
+//SIMSProcessor<SoftwareSerial> sims_uart(new SoftwareSerial(8,9));
 PM25OutputProcessor<HardwareSerial> pm25_uart(&Serial1);
 
 void setup() {
   mm_data.mode = COMMAND_VALUE_INTPRT_MODE_FIXED;
-  mm_data.vcc_en = true;
+  mm_data.vcc_en = false;
   mm_data.fixed_output = 0x0010;
   sims_uart.serBegin(9600);
   pm25_uart.serBegin(2400);
@@ -175,10 +175,10 @@ void setup() {
 }
 
 void loop() {
-  Serial.print("middleman:loop()\n");
-  delay(1000);
   if ( (!mm_data.vcc_en) && (mm_data.mode==COMMAND_VALUE_INTPRT_MODE_FIXED)) {
+      Serial.print("middleman:sending fixed_output\n");
       pm25_uart.writeData(mm_data.fixed_output);
+      //sims_uart.writeData(COMMAND_NAME_FIXED_PM_OUTPUT_VAL,mm_data.fixed_output);
       delay(1000);
   } else {
     if (pm25_uart.serReceive()==SERPROC_RX_PACKET_READY) {
@@ -211,7 +211,7 @@ void loop() {
           if ((cmd&COMMAND_RW_BIT_MASK)==COMMAND_RW_WRITE) {
             mm_data.fixed_output = data;
           }
-          sims_uart.writeData(cmd,mm_data.mode);
+          sims_uart.writeData(cmd,mm_data.fixed_output);
           break;
       }
     }
