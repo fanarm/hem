@@ -4,8 +4,35 @@
     <meta  content="text/html; charset=UTF-8"  http-equiv="content-type">
     <title>HEM History</title>
   </head>
-  <body> 
-  <table style="text-align:center; font-size:40px;">
+  <body>
+    <table  style="width: 100%;"  border="0">
+      <tbody>
+        <tr>
+          <td><a  href="/"><img  style="width: 160px; height: 160px;"  alt="Back"
+                 src="static/pics/back.png"></a><br>
+          </td>
+          <td  style="width: 274.333px; text-align: right;"><a  href="log.html"><img
+                 style="width: 160px; height: 160px;"  alt="logs"  src="static/pics/logs.png"></a></td>
+          <td  style="width: 606.833px; text-align: center;"><img  style="width: 160px; height: 160px;"
+               alt="Previous records today"  src="static/pics/history.png"><br>
+          </td>
+          <td  style="text-align: left;"><a  href="calendar.html"><img  style="width: 160px; height: 160px;"
+                 alt="History records"  src="static/pics/calendar.png"></a><br>
+          </td>
+        </tr>
+        <tr>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td  style="background-color: rgb(153, 153, 153);"><span  style="color: rgb(153, 153, 153);"><br>
+            </span> </td>
+          <td><br>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+   <table style="text-align:center; font-size:40px;">
     <tr>
       {% for col in header.split() %} 
       <th>&nbsp;{{ col }}&nbsp;</th>
@@ -18,5 +45,6 @@
       {% endfor %}
     </tr>
     {% endfor %}
+    </table>
   </body>
 </html>
