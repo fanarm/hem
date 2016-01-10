@@ -97,7 +97,7 @@ class PM25OutputProcessor : public SerialProcessor<S, 8> {
   public:
     PM25OutputProcessor(S *port):SerialProcessor<S,8>(port, 0xAA, 7){txPacket[0]=0xAA;txPacket[3]=0;txPacket[4]=0x3E;txPacket[6]=0xFF;}
     bool readData(uint16_t *pm25, uint16_t *vref);
-    uint16_t alterPM25(uint8_t mode, uint16_t *data1, uint8_t *data2);
+    bool alterPM25(uint16_t *raw_pm, uint16_t *raw_vref, uint8_t mode, uint16_t *data1, uint8_t *data2);
     void writeData(uint16_t pm25);
     bool packetCheck(uint8_t *buf);
 };
@@ -116,19 +116,20 @@ bool PM25OutputProcessor<S>::readData(uint16_t *pm25, uint16_t *vref) {
 }
 
 template<class S> 
-uint16_t PM25OutputProcessor<S>::alterPM25(uint8_t mode, uint16_t *data1, uint8_t *data2) {
+bool PM25OutputProcessor<S>::alterPM25(uint16_t *raw_pm, uint16_t *raw_vref, uint8_t mode, uint16_t *data1, uint8_t *data2) {
   uint8_t t, i, *buf, txBuf[7];
-  uint16_t ret, pm25raw, pm25out;
+  uint16_t ret, pm25out;
   t = this->serGetContent(&buf);
   if (t==SERPROC_RX_PACKET_READ_SUC) {
     memcpy(txBuf,buf,7);
-    pm25raw = txBuf[1]*256 + txBuf[2];
+    *raw_pm = txBuf[1]*256 + txBuf[2];
+    *raw_vref = txBuf[3]*256 + txBuf[4];
     if (mode == COMMAND_VALUE_INTPRT_MODE_SCALE) {
-      while (pm25raw>(*data1)) {
+      while ((*raw_pm)>(*data1)) {
         data1++;
         data2++;
       }
-      pm25out = pm25raw*(*data2);
+      pm25out = (*raw_pm)*(*data2);
     } 
     if (mode == COMMAND_VALUE_INTPRT_MODE_FIXED) pm25out = *data1;
     if ((mode == COMMAND_VALUE_INTPRT_MODE_FIXED)||(mode == COMMAND_VALUE_INTPRT_MODE_SCALE)) {
@@ -137,9 +138,9 @@ uint16_t PM25OutputProcessor<S>::alterPM25(uint8_t mode, uint16_t *data1, uint8_
       txBuf[5] = txBuf[1]+txBuf[2]+txBuf[3]+txBuf[4];
     }
     this->serSendContent(txBuf,7);
-    return pm25raw;
+    return true;
   } else {
-    return PM25_INVALID_VALUE;
+    return false;
   }
 }
 
@@ -183,9 +184,14 @@ void loop() {
   } else {
     if (pm25_uart.serReceive()==SERPROC_RX_PACKET_READY) {
       if (mm_data.mode==COMMAND_VALUE_INTPRT_MODE_FIXED) {
-        mm_data.raw_pm = pm25_uart.alterPM25(COMMAND_VALUE_INTPRT_MODE_FIXED, &mm_data.fixed_output, NULL);
+        Serial.print("middleman:sending fixed_output after receiving\n");
+        pm25_uart.alterPM25(&mm_data.raw_pm, &mm_data.raw_vref, mm_data.mode, &mm_data.fixed_output, NULL);
       } else if (mm_data.mode==COMMAND_VALUE_INTPRT_MODE_SCALE) {
-        mm_data.raw_pm = pm25_uart.alterPM25(COMMAND_VALUE_INTPRT_MODE_FIXED, mm_data.scale_thres, mm_data.scale);
+        Serial.print("middleman:sending scaled output after receiving\n");
+        pm25_uart.alterPM25(&mm_data.raw_pm, &mm_data.raw_vref, mm_data.mode, mm_data.scale_thres, mm_data.scale);
+      } else if (mm_data.mode==COMMAND_VALUE_INTPRT_MODE_PASS_THRU) {
+        Serial.print("middleman:sending unchanged output after receiving\n");
+        pm25_uart.alterPM25(&mm_data.raw_pm, &mm_data.raw_vref, mm_data.mode, NULL, NULL);
       }
     }
   }
@@ -200,19 +206,51 @@ void loop() {
       Serial.print("/");
       Serial.print(data,HEX);
       Serial.print("\n");
-      switch (cmd&(~COMMAND_RW_BIT_MASK)) {
-        case COMMAND_NAME_INTPRT_MODE:
-          if ((cmd&COMMAND_RW_BIT_MASK)==COMMAND_RW_WRITE) {
-            mm_data.mode = (uint8_t)data;
+      switch (cmd&COMMAND_NAME_CLASS_MASK) {
+        case COMMAND_NAME_COMMON_CLASS:
+        case COMMAND_NAME_STATUS_CLASS:
+          switch (cmd&(~COMMAND_RW_BIT_MASK)) {
+            case COMMAND_NAME_INTPRT_MODE:
+              if ((cmd&COMMAND_RW_BIT_MASK)==COMMAND_RW_WRITE) {
+                mm_data.mode = (uint8_t)data;
+              }
+              sims_uart.writeData(cmd,(uint16_t)mm_data.mode);
+              break;
+            case COMMAND_NAME_FIXED_PM_OUTPUT_VAL:
+              if ((cmd&COMMAND_RW_BIT_MASK)==COMMAND_RW_WRITE) {
+                mm_data.fixed_output = data;
+              }
+              sims_uart.writeData(cmd,mm_data.fixed_output);
+              break;
+            case COMMAND_NAME_VCC_PM_EN:
+              if ((cmd&COMMAND_RW_BIT_MASK)==COMMAND_RW_WRITE) {
+                mm_data.vcc_en = (data==1);
+              }
+              sims_uart.writeData(cmd,mm_data.vcc_en?1:0);
+              break;
+            case COMMAND_NAME_LATEST_RAW_PM:
+              sims_uart.writeData(cmd,mm_data.raw_pm);
+              break;
+            case COMMAND_NAME_LATEST_RAW_VREF:
+              sims_uart.writeData(cmd,mm_data.raw_vref);
+              break;
           }
-          sims_uart.writeData(cmd,mm_data.mode);
           break;
-        case COMMAND_NAME_FIXED_PM_OUTPUT_VAL:
-          if ((cmd&COMMAND_RW_BIT_MASK)==COMMAND_RW_WRITE) {
-            mm_data.fixed_output = data;
+        case COMMAND_NAME_RESPONSE_CURVE_CLASS:
+          if ((cmd&COMMAND_NAME_RESPONSE_CURVE_MASK)==COMMAND_NAME_RESPONSE_CURVE_THRES_BASE) {
+            uint8_t reg_addr = (cmd&(~COMMAND_RW_BIT_MASK))-COMMAND_NAME_RESPONSE_CURVE_THRES_BASE;
+            if ((cmd&COMMAND_RW_BIT_MASK)==COMMAND_RW_WRITE) {
+              mm_data.scale_thres[reg_addr] = data;
+            }
+            sims_uart.writeData(cmd,mm_data.scale_thres[reg_addr]);
+          } else {
+            uint8_t reg_addr = (cmd&(~COMMAND_RW_BIT_MASK))-COMMAND_NAME_RESPONSE_CURVE_VAL_BASE;
+            if ((cmd&COMMAND_RW_BIT_MASK)==COMMAND_RW_WRITE) {
+              mm_data.scale[reg_addr] = (uint8_t)data;
+            }
+            sims_uart.writeData(cmd,(uint16_t)mm_data.scale[reg_addr]);            
           }
-          sims_uart.writeData(cmd,mm_data.fixed_output);
-          break;
+          break;          
       }
     }
   }

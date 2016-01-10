@@ -27,18 +27,18 @@ Byte	Content
 			0x10: fixed PM output value
 			0x11: fixed Vref output value
 			0x15: Vcc enable for PM sensor 
-			0x30: scaling response curve - threshold for range 0
-			0x31: scaling response curve - threshold for range 1
-			0x40: scaling response curve - value for range 0
-			0x41: scaling response curve - value for range 1
+			0x20: scaling response curve - threshold for range 0
+			0x21: scaling response curve - threshold for range 1
+			0x30: scaling response curve - value for range 0
+			0x31: scaling response curve - value for range 1
 				...
-			0x4F: scaling response curve - value for range 7
-			0x50: [RO]latest raw PM input
-			0x51: sample count for averaging PM input 
-			0x52: [RO]average PM input
-			0x60: [RO]latest raw Vref input
-			0x61: sample count for averaging Vref input 
-			0x62: [RO]average Vref input
+			0x3F: scaling response curve - value for range 7
+			0x60: [RO]latest raw PM input
+			0x61: sample count for averaging PM input 
+			0x62: [RO]average PM input
+			0x70: [RO]latest raw Vref input
+			0x71: sample count for averaging Vref input 
+			0x72: [RO]average Vref input
 2/3	Data byte 0/1 (little endian, data byte 0 is LSB)
 	Write Command: the value to be written to the name.
 		Name - interpreter mode

@@ -24,7 +24,7 @@ struct MM_DATA_STRUCT {
   uint16_t scale_thres[10];
   byte scale[10];
   uint16_t raw_pm;
-  uint16_t vref;
+  uint16_t raw_vref;
 };
 
 #endif
