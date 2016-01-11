@@ -65,6 +65,12 @@ def serveHistory():
    lines = logfile.readlines()
    return render_template('history_template.html', header=lines[0], entries=lines[1:])
 
+@app.route("/log.html")
+def serveLog():
+   logfile = open(LOG_FILE_PATH+"hem.log",'r')
+   lines = logfile.readlines()
+   return render_template('log_template.html', entries=lines)
+
 @app.route("/chart/<path:filename>")
 def serveChart(filename):
    return send_from_directory("/home/pi/hem/pic", filename)

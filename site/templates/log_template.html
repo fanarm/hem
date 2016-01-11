@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta  content="text/html; charset=UTF-8"  http-equiv="content-type">
+    <title>HEM History</title>
+  </head>
+  <body>
+    <table  style="width: 100%;"  border="0">
+      <tbody>
+        <tr>
+          <td><a  href="/"><img  style="width: 160px; height: 160px;"  alt="Back"
+                 src="static/pics/back.png"></a><br>
+          </td>
+          <td  style="width: 274.333px; text-align: right;"><img
+                 style="width: 160px; height: 160px;"  alt="logs"  src="static/pics/logs.png"></td>
+          <td  style="width: 606.833px; text-align: center;"><a  href="history.html"><img  style="width: 160px; height: 160px;"
+               alt="Previous records today"  src="static/pics/history.png"><br>
+          </a></td>
+          <td  style="text-align: left;"><a  href="calendar.html"><img  style="width: 160px; height: 160px;"
+                 alt="History records"  src="static/pics/calendar.png"></a><br>
+          </td>
+        </tr>
+        <tr>
+          <td><br>
+          </td>
+          <td style="background-color: rgb(153, 153, 153);"><span  style="color: rgb(153, 153, 153);"><br>
+          </td>
+          <td><br>
+            </span> </td>
+          <td><br>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+   <table style="text-align:left; font-size:40px;">
+    {% for row in entries %} 
+    <tr>
+      <td>{{ row }}&nbsp;</td>
+    </tr>
+    {% endfor %}
+    </table>
+  </body>
+</html>
