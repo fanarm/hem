@@ -24,6 +24,7 @@ import RPi.GPIO as GPIO
 import os
 import posix_ipc as ipc
 import logging
+import subprocess
 
 REGULAR_DATA_FILE = "/home/pi/hem/log/pmth.log"
 SHM_NAME_HEM_PRESENT_DATA = "/hem_data"
@@ -35,10 +36,11 @@ PLOT_LOG_FILE_NAME_BASE = "/home/pi/hem/log/pmth_plot_"
 RUNNING_TIME_OFFSET_SEC = 6.4
 BTH_NAME = 'hci0'
 BTS_ADDR = '98:D3:32:30:39:59'
+BT_UART_DEV_NAME = '/dev/rfcomm0'
 
 ## Hourly array to set polling interval
 TARGET_SAMPLES_OVER_HOURS = [  12,  6,  6,  6,  6,  6,  12, 30, 30, 12,  12,  12, 
-                               30,  12,  12,  12, 30, 30, 60, 60, 60, 30,  30,  12]
+                               30,  12,  12,  12, 30, 30, 60, 60, 60, 60,  60,  60]
 PM25_SMOOTHING_SAMPLES = 5
 PM25_MAX_RETRIES = 5
 AP_MI_SENSOR_CONSTANT = 2.428
@@ -69,10 +71,12 @@ class PMSensor :
             need_recover = False
             rcv = self.port.read(32)
             if len(rcv) < 32 :
-                print_log_with_time(LOG_FILE,'a',"[Error] G5 PM2.5 sensor receiving error. Less than 32 bytes.\n")
+                #print_log_with_time(LOG_FILE,'a',"[Error] G5 PM2.5 sensor receiving error. Less than 32 bytes.\n")
+                logging.getLogger().error("G5 PM2.5 sensor receiving error. Less than 32 bytes.") 
                 need_recover = True
             elif rcv[0] != '\x42' or rcv[1] != '\x4d' or rcv[2] != '\x00' or rcv[3] != '\x1c' :
-                print_log_with_time(LOG_FILE,'a',"[Error] G5 PM2.5 sensor receiving error. Data truncated.\n")
+                #print_log_with_time(LOG_FILE,'a',"[Error] G5 PM2.5 sensor receiving error. Data truncated.\n")
+                logging.getLogger().error("G5 PM2.5 sensor receiving error. Data truncated.")
                 need_recover = True
             else :
                 ## pm1=ord(rcv[10])*256+ord(rcv[11])
@@ -88,8 +92,9 @@ class PMSensor :
                 pm25_retry_count += 1
                 self.wake()
         self.sleep()
-        if len(pm25_data)>0 :
-            return sum(pm25_data)/PM25_SMOOTHING_SAMPLES
+        numSample = len(pm25_data)
+        if numSample >0 :
+            return sum(pm25_data)/numSample
         else :
             return 0
 
@@ -110,19 +115,40 @@ class SHT :
         ## print "RH raw readig: "+repr(vh)
         return int(-6 + 125*vh/256)
 
+def bluetoothRecovery() :
+    logging.getLogger().info("hem.py tries to reconnect to AP_mi via rfcomm.") 
+    subprocess.call(['hciconfig',BTH_NAME,'reset'])
+    time.sleep(5)
+    subprocess.Popen(['rfcomm','connect',BTH_NAME,BTS_ADDR])
+
 class ap_mi :
     """ Class for temperature and humidity sensor /dev/rfcomm0 """
     def __init__(self,devname) :
-        self.port = serial.Serial(devname, baudrate=9600,timeout=1.5)
+        self.devname = devname
+        self.opened = False
+    def open(self) :
+        try:
+            self.port = serial.Serial(self.devname, baudrate=9600,timeout=1.5)
+            self.opened = True
+        except serial.SerialException :
+            logging.getLogger().exception("Bluetooth serial exception when opening the port.") 
+            self.opened = False
     def bytesToStr(self,bytelist) :
         return ''.join(chr(c) for c in bytelist)
     def strToBytes(self,rcvstr) :
         return list(ord(c) for c in rcvstr)
     def sendFixedOutput(self, value) :
         txstr = self.bytesToStr([0x65,0x90,value,0,(0x90+value)%256])
-        self.port.write(txstr)
-        rxstr = self.port.read(5)
-        return (ord(rxstr[2])==value)
+        try:
+            self.port.write(txstr)
+            rxstr = self.port.read(5)
+            return (ord(rxstr[2])==value)
+        except serial.SerialException :
+            logging.getLogger().exception("Bluetooth serial exception when accessing the port.") 
+            self.opened = False
+            bluetoothRecovery()
+            return False
+
 
 def print_log(log_file_name, openmode, log_string) :
     logfile = open(log_file_name, openmode)
@@ -160,19 +186,19 @@ def calculate_sleep_target(timenow) :
     else :
         return interval
 
-def bluetoothRecovery() :
-    subprocess.call(['hciconfig',BTH_NAME,'reset'])
-    subprocess.Popen(['rfcomm','connect',BTH_NAME,BTS_ADDR])
 
-logging.basicConfig(filename=LOG_FILE)
+logging.basicConfig(filename=LOG_FILE,level=logging.DEBUG,format='%(asctime)s %(levelname)s %(message)s')
 try:
    GPIO.setmode(GPIO.BCM)
    GPIO.setwarnings(False)
    pms = PMSensor("/dev/ttyAMA0",18)
    pms.initialize()
    ths = SHT(1)
-   apmi = ap_mi("/dev/rfcomm0")
-   print_log_with_time(LOG_FILE,'a',"[Info] hem.py starts polling loop.\n")
+   apmi = ap_mi(BT_UART_DEV_NAME)
+   if os.path.exists(BT_UART_DEV_NAME) :
+       apmi.open()
+   #print_log_with_time(LOG_FILE,'a',"[Info] hem.py starts polling loop.\n")
+   logging.getLogger().info("hem.py starts polling loop") 
    while True:
        pm25s = pms.readPM25()
        t = ths.readTemp()
@@ -184,13 +210,14 @@ try:
        #print_log(REGULAR_DATA_FILE,'w',rec)
        shared_memory_write(SHM_NAME_HEM_PRESENT_DATA, SHM_SIZE_HEM_PRESENT_DATA,
                         rec)
-       try:
+       if os.path.exists(BT_UART_DEV_NAME) :
+           if not apmi.opened :
+               apmi.open()
            if apmi.sendFixedOutput(int(pm25s/AP_MI_SENSOR_CONSTANT))!=True :
-               print_log_with_time(LOG_FILE,'a',"[Error] hem.py fails to update PM2.5 sensor on AP_mi.\n")
-       except Exception :
-              logger = logging.getLogger()
-              logger.exception("Exception in ap_mi bluetooth communication. Resetting bluetooth.") 
-              bluetoothRecovery()
+               logging.getLogger().error("hem.py fails to update PM2.5 sensor on AP_mi.") 
+               #print_log_with_time(LOG_FILE,'a',"[Error] hem.py fails to update PM2.5 sensor on AP_mi.\n")
+       else :
+           bluetoothRecovery()
        plotfile = PLOT_LOG_FILE_NAME_BASE+curtime.strftime("%Y_%m_%d")+".log"
        if not os.path.exists(plotfile) :
            print_log(plotfile,'w',"Date Time PM2.5 Temp Humidity\n")
