@@ -24,7 +24,7 @@ import posix_ipc as ipc
 import os
 
 LOG_FILE_PATH = "/home/pi/hem/log/"
-REGULAR_LOG_REGEX = "(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) PM2\.5:(\d+) Temp:(\d+) RH:(\d+)%"
+REGULAR_LOG_REGEX = "(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) PM2\.5:(\d+) Temp:(\d+) RH:(\d+)% APMI:(\w+)"
 SHM_NAME_HEM_PRESENT_DATA = "/hem_data"
 SHM_SIZE_HEM_PRESENT_DATA = 256
 CHART_LOCAL_PATH = "/home/pi/hem/pic/"
@@ -55,7 +55,8 @@ def showStatus():
    pmvalue = rec_mo.group(2)
    tvalue = rec_mo.group(3)
    rhvalue = rec_mo.group(4)
-   return render_template('hem_template.html', ts=timestamp, pm=pmvalue, t=tvalue, rh=rhvalue)
+   apmiRes = rec_mo.group(5)
+   return render_template('hem_template.html', ts=timestamp, pm=pmvalue, t=tvalue, rh=rhvalue, ar=apmiRes)
 
 @app.route("/history.html")
 def serveHistory():

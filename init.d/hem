@@ -26,27 +26,47 @@ if [ "$HEM_DAEMON" = "no" ]; then
 #    exit 0
 fi
 
-HEMPYM="/home/pi/hem/hem.py"
-#STOPFILE="/home/pi/hem/hem_stop"
-PIDFILE="/var/run/hem.pid"
+HEMD_PYM="/home/pi/hem/hem.py"
+HEMSERVER_PYM="/home/pi/hem/site/hemServer.py"
+HEMD_PIDFILE="/var/run/hem.pid"
+HEMSERVER_PIDFILE="/var/run/hemserver.pid"
+HEMSERVER_LOGFILE="/home/pi/hem/site/hemServer.log"
+HEM_BT_APMI_PIDFILE="/var/run/hemapmi.pid"
+HEM_BT_APMI_ADDR="98:D3:32:30:39:59"
 
 case "$1" in
 	start)
-		echo "Starting hem daemon"
-		rm -f $STOPFILE
+		echo "Starting hem daemon and hem web server"
 		# Add delay here to allow time initialization via htpdate
-		$HEMPYM &
-		HEM_PID=$!
-		echo $HEM_PID > $PIDFILE
+		$HEMD_PYM &
+		HEMD_PID=$!
+		echo $HEMD_PID > $HEMD_PIDFILE
+		$HEMSERVER_PYM > $HEMSERVER_LOGFILE &
+		HEMSERVER_PID=$!
+		echo $HEMSERVER_PID > $HEMSERVER_PIDFILE
+		rfcomm connect hci0 $HEM_BT_APMI_ADDR &
+		HEM_BT_APMI_PID=$!
+		echo $HEM_BT_APMI_PID > $HEM_BT_APMI_PIDFILE
 		;;
 	stop)
-		echo "Stopping hem daemon"
-		if [ -f $PIDFILE ]; then
-			kill `cat $PIDFILE`
+		echo "Stopping hem daemon and hem web server"
+		if [ -f $HEM_BT_APMI_PIDFILE ]; then
+			kill -INT `cat $HEM_BT_APMI_PIDFILE`
 		else
-			echo "$PIDFILE not found"
+			echo "$HEM_BT_APMI_PIDFILE not found"
 		fi
-		rm -f $PIDFILE 
+		if [ -f $HEMD_PIDFILE ]; then
+			kill `cat $HEMD_PIDFILE`
+		else
+			echo "$HEMD_PIDFILE not found"
+		fi
+		rm -f $HEMD_PIDFILE 
+                if [ -f $HEMSERVER_PIDFILE ]; then
+                        kill `cat $HEMSERVER_PIDFILE`
+                else
+                        echo "$HEMSERVER_PIDFILE not found"
+                fi
+		rm -f $HEMSERVER_PIDFILE
 		;;
 	restart)
 		$0 stop
