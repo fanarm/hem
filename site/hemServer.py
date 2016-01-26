@@ -72,6 +72,12 @@ def serveLog():
    lines = logfile.readlines()
    return render_template('log_template.html', entries=lines)
 
+@app.route("/config.html")
+@app.route("/nasconf.html")
+def serveNasConfig():
+   wolstatus = "n/a"
+   return render_template('nasconf_template.html', wol_status=wolstatus)
+
 @app.route("/chart/<path:filename>")
 def serveChart(filename):
    return send_from_directory("/home/pi/hem/pic", filename)

@@ -30,7 +30,7 @@ HEMD_PYM="/home/pi/hem/hem.py"
 HEMSERVER_PYM="/home/pi/hem/site/hemServer.py"
 HEMD_PIDFILE="/var/run/hem.pid"
 HEMSERVER_PIDFILE="/var/run/hemserver.pid"
-HEMSERVER_LOGFILE="/home/pi/hem/site/hemServer.log"
+HEMSERVER_LOGFILE="/home/pi/hem/log/hemServer.log"
 HEM_BT_APMI_PIDFILE="/var/run/hemapmi.pid"
 HEM_BT_APMI_ADDR="98:D3:32:30:39:59"
 

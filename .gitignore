@@ -3,3 +3,8 @@
 
 # ignore back-up files
 *.bak
+
+# ignore sync scripts
+sync2pc.sh
+sync2pi.sh
+
