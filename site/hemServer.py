@@ -16,12 +16,15 @@
    limitations under the License.
 '''
 
-from flask import Flask
+from flask import Flask, request
 from flask import render_template, send_from_directory
 import re
 import datetime
 import posix_ipc as ipc
 import os
+import sched
+import time
+import subprocess
 
 LOG_FILE_PATH = "/home/pi/hem/log/"
 REGULAR_LOG_REGEX = "(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) PM2\.5:(\d+) Temp:(\d+) RH:(\d+)% APMI:(\w+)"
@@ -29,6 +32,15 @@ SHM_NAME_HEM_PRESENT_DATA = "/hem_data"
 SHM_SIZE_HEM_PRESENT_DATA = 256
 CHART_LOCAL_PATH = "/home/pi/hem/pic/"
 CHART_URL_PREFIX = "/chart/"
+WOL_LOCK_FILE_NAME = "/run/lock/nas.wol.lock"
+
+wol_timer = None
+wol_on = False
+wol_planned_off = None
+def stop_wol():
+    subprocess.call(['rm',WOL_LOCK_FILE_NAME])
+def start_wol():
+    subprocess.call(['touch',WOL_LOCK_FILE_NAME])
 
 def shared_memory_write(shm_name, shm_size, data) :
     shm = ipc.SharedMemory(shm_name, ipc.O_CREAT,
@@ -73,9 +85,23 @@ def serveLog():
    return render_template('log_template.html', entries=lines)
 
 @app.route("/config.html")
-@app.route("/nasconf.html")
+@app.route("/nasconf.html", methods=['GET','POST'])
 def serveNasConfig():
-   wolstatus = "n/a"
+   if request.method == 'POST' :
+      extend_time = request.form['NAS_act_sel']
+      if extend_time == '0' :
+         stop_wol()
+      else :
+         start_wol()
+         if extend_time != 'forever' :
+            Timer(int(extend_time)*60,stop_wol,()).start()
+   if wol_on :
+      if wol_planned_off == None :
+         wolstatus = "On"
+      else :
+         wolstatus = wol_planned_off.strftime('On till %X %x %Z')
+   else :
+      wolstatus = "Off"
    return render_template('nasconf_template.html', wol_status=wolstatus)
 
 @app.route("/chart/<path:filename>")
