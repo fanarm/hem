@@ -25,6 +25,7 @@ import os
 import sched
 import time
 import subprocess
+import threading
 
 LOG_FILE_PATH = "/home/pi/hem/log/"
 REGULAR_LOG_REGEX = "(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) PM2\.5:(\d+) Temp:(\d+) RH:(\d+)% APMI:(\w+)"
@@ -33,14 +34,28 @@ SHM_SIZE_HEM_PRESENT_DATA = 256
 CHART_LOCAL_PATH = "/home/pi/hem/pic/"
 CHART_URL_PREFIX = "/chart/"
 WOL_LOCK_FILE_NAME = "/run/lock/nas.wol.lock"
+WOL_SCRIPT_FILE_NAME = "/home/pi/hem/wol.sh"
 
 wol_timer = None
 wol_on = False
 wol_planned_off = None
+wol_pid = None
+
 def stop_wol():
+    global wol_pid
+    global wol_on
+    global wol_timer
     subprocess.call(['rm',WOL_LOCK_FILE_NAME])
+    wol_pid = None
+    wol_on = False
+    wol_timer = None
+
 def start_wol():
+    global wol_pid
+    global wol_on
     subprocess.call(['touch',WOL_LOCK_FILE_NAME])
+    wol_pid = subprocess.Popen([WOL_SCRIPT_FILE_NAME]).pid
+    wol_on = True
 
 def shared_memory_write(shm_name, shm_size, data) :
     shm = ipc.SharedMemory(shm_name, ipc.O_CREAT,
@@ -87,19 +102,27 @@ def serveLog():
 @app.route("/config.html")
 @app.route("/nasconf.html", methods=['GET','POST'])
 def serveNasConfig():
+   global wol_on
+   global wol_planned_off
+   global wol_timer
    if request.method == 'POST' :
       extend_time = request.form['NAS_act_sel']
+      if wol_timer != None :
+          wol_timer.cancel()
       if extend_time == '0' :
          stop_wol()
       else :
          start_wol()
-         if extend_time != 'forever' :
-            Timer(int(extend_time)*60,stop_wol,()).start()
+         wol_planned_off = time.localtime(time.time()+int(extend_time)*60)
+         wol_timer = threading.Timer(int(extend_time)*60,stop_wol)
+         wol_timer.start()
+#         if extend_time != 'forever' :
+#            Timer(int(extend_time)*60,stop_wol,()).start()
    if wol_on :
       if wol_planned_off == None :
          wolstatus = "On"
       else :
-         wolstatus = wol_planned_off.strftime('On till %X %x %Z')
+         wolstatus = time.strftime('On till %X %x %Z', wol_planned_off)
    else :
       wolstatus = "Off"
    return render_template('nasconf_template.html', wol_status=wolstatus)
@@ -121,5 +144,5 @@ def add_header(response):
    return response
 
 if __name__ == "__main__" :
-   app.run('0.0.0.0')
+   app.run(debug=True, use_debugger=True, host='0.0.0.0')
 
