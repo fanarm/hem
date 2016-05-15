@@ -26,6 +26,7 @@ import sched
 import time
 import subprocess
 import threading
+import logging
 
 LOG_FILE_PATH = "/home/pi/hem/log/"
 REGULAR_LOG_REGEX = "(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) PM2\.5:(\d+) Temp:(\d+) RH:(\d+)% APMI:(\w+)"
@@ -35,6 +36,7 @@ CHART_LOCAL_PATH = "/home/pi/hem/pic/"
 CHART_URL_PREFIX = "/chart/"
 WOL_LOCK_FILE_NAME = "/run/lock/nas.wol.lock"
 WOL_SCRIPT_FILE_NAME = "/home/pi/hem/wol.sh"
+SERVER_LOG_FILE_NAME = LOG_FILE_PATH + "hemServer.log"
 
 wol_timer = None
 wol_on = False
@@ -144,5 +146,13 @@ def add_header(response):
    return response
 
 if __name__ == "__main__" :
+   file_handler = logging.FileHandler(SERVER_LOG_FILE_NAME)
+   file_handler.setLevel(logging.DEBUG)
+   app.logger.addHandler(file_handler)
+   app.logger.setLevel(logging.DEBUG)
+   app.logger.debug("HEM server started.")
    app.run(debug=True, use_debugger=True, host='0.0.0.0')
+
+
+
 

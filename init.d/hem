@@ -33,6 +33,7 @@ HEMSERVER_PIDFILE="/var/run/hemserver.pid"
 HEMSERVER_LOGFILE="/home/pi/hem/log/hemServer.log"
 HEM_BT_APMI_PIDFILE="/var/run/hemapmi.pid"
 HEM_BT_APMI_ADDR="98:D3:32:30:39:59"
+HEM_NAS_WOL_LOCKFILE="/run/lock/nas.wol.lock"
 
 case "$1" in
 	start)
@@ -41,7 +42,7 @@ case "$1" in
 		$HEMD_PYM &
 		HEMD_PID=$!
 		echo $HEMD_PID > $HEMD_PIDFILE
-		$HEMSERVER_PYM > $HEMSERVER_LOGFILE &
+		python $HEMSERVER_PYM >> $HEMSERVER_LOGFILE 2>&1 &
 		HEMSERVER_PID=$!
 		echo $HEMSERVER_PID > $HEMSERVER_PIDFILE
 		rfcomm connect hci0 $HEM_BT_APMI_ADDR &
@@ -51,22 +52,26 @@ case "$1" in
 	stop)
 		echo "Stopping hem daemon and hem web server"
 		if [ -f $HEM_BT_APMI_PIDFILE ]; then
+			echo "Killing BT_APMI process `cat $HEM_BT_APMI_PIDFILE`..."
 			kill -INT `cat $HEM_BT_APMI_PIDFILE`
 		else
 			echo "$HEM_BT_APMI_PIDFILE not found"
 		fi
 		if [ -f $HEMD_PIDFILE ]; then
+			echo "Killing HEM daemon `cat $HEMD_PIDFILE`..."
 			kill `cat $HEMD_PIDFILE`
 		else
 			echo "$HEMD_PIDFILE not found"
 		fi
 		rm -f $HEMD_PIDFILE 
                 if [ -f $HEMSERVER_PIDFILE ]; then
+			echo "Killing HEM server `cat $HEMSERVER_PIDFILE`..."
                         kill `cat $HEMSERVER_PIDFILE`
                 else
                         echo "$HEMSERVER_PIDFILE not found"
                 fi
 		rm -f $HEMSERVER_PIDFILE
+		rm -f $HEM_NAS_WOL_LOCKFILE
 		;;
 	restart)
 		$0 stop
