@@ -27,6 +27,7 @@ import time
 import subprocess
 import threading
 import logging
+from logging import Formatter
 
 LOG_FILE_PATH = "/home/pi/hem/log/"
 REGULAR_LOG_REGEX = "(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) PM2\.5:(\d+) Temp:(\d+) RH:(\d+)% APMI:(\w+)"
@@ -51,6 +52,7 @@ def stop_wol():
     wol_pid = None
     wol_on = False
     wol_timer = None
+    app.logger.debug("WOL lock file removed.")
 
 def start_wol():
     global wol_pid
@@ -58,6 +60,7 @@ def start_wol():
     subprocess.call(['touch',WOL_LOCK_FILE_NAME])
     wol_pid = subprocess.Popen([WOL_SCRIPT_FILE_NAME]).pid
     wol_on = True
+    app.logger.debug("WOL lock file created.")
 
 def shared_memory_write(shm_name, shm_size, data) :
     shm = ipc.SharedMemory(shm_name, ipc.O_CREAT,
@@ -148,6 +151,7 @@ def add_header(response):
 if __name__ == "__main__" :
    file_handler = logging.FileHandler(SERVER_LOG_FILE_NAME)
    file_handler.setLevel(logging.DEBUG)
+   file_handler.setFormatter(Formatter('%(asctime)s %(levelname)s: %(message)s'))
    app.logger.addHandler(file_handler)
    app.logger.setLevel(logging.DEBUG)
    app.logger.debug("HEM server started.")
