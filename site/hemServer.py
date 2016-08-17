@@ -83,11 +83,14 @@ app = Flask(__name__)
 def showStatus():
    recline = shared_memory_readline(SHM_NAME_HEM_PRESENT_DATA, SHM_SIZE_HEM_PRESENT_DATA)
    rec_mo = re.search(REGULAR_LOG_REGEX, recline)
-   timestamp = rec_mo.group(1)
-   pmvalue = rec_mo.group(2)
-   tvalue = rec_mo.group(3)
-   rhvalue = rec_mo.group(4)
-   apmiRes = rec_mo.group(5)
+   if rec_mo == None :
+      timestamp = pmvalue = tvalue = rhvalue = apmiRes = "n.a."
+   else :
+      timestamp = rec_mo.group(1)
+      pmvalue = rec_mo.group(2)
+      tvalue = rec_mo.group(3)
+      rhvalue = rec_mo.group(4)
+      apmiRes = rec_mo.group(5)
    return render_template('hem_template.html', ts=timestamp, pm=pmvalue, t=tvalue, rh=rhvalue, ar=apmiRes)
 
 @app.route("/history.html")
