@@ -26,6 +26,7 @@ import sched
 import time
 import subprocess
 import threading
+import avr
 import logging
 from logging import Formatter
 
@@ -37,12 +38,16 @@ CHART_LOCAL_PATH = "/home/pi/hem/pic/"
 CHART_URL_PREFIX = "/chart/"
 WOL_LOCK_FILE_NAME = "/run/lock/nas.wol.lock"
 WOL_SCRIPT_FILE_NAME = "/home/pi/hem/wol.sh"
-SERVER_LOG_FILE_NAME = LOG_FILE_PATH + "hemServer.log"
+SERVER_LOG_FILE_NAME = LOG_FILE_PATH + "server.log"
+AVR_USB_PORT_NAME = "/dev/ttyUSB0"
+KODI_EXE_PATH = "/usr/bin/kodi"
 
 wol_timer = None
 wol_on = False
 wol_planned_off = None
 wol_pid = None
+kodi_shell_pid = None
+avr2809 = avr.avr(AVR_USB_PORT_NAME)
 
 def stop_wol():
     global wol_pid
@@ -113,19 +118,44 @@ def serveNasConfig():
    global wol_on
    global wol_planned_off
    global wol_timer
+   global kodi_shell_pid
    if request.method == 'POST' :
-      extend_time = request.form['NAS_act_sel']
-      if wol_timer != None :
-          wol_timer.cancel()
-      if extend_time == '0' :
-         stop_wol()
-      else :
-         start_wol()
-         wol_planned_off = time.localtime(time.time()+int(extend_time)*60)
-         wol_timer = threading.Timer(int(extend_time)*60,stop_wol)
-         wol_timer.start()
-#         if extend_time != 'forever' :
-#            Timer(int(extend_time)*60,stop_wol,()).start()
+      if 'NAS_act_sel' in request.form : 
+         extend_time = request.form['NAS_act_sel']
+         if wol_timer != None :
+            wol_timer.cancel()
+         if extend_time == '0' :
+            stop_wol()
+         else :
+            start_wol()
+            wol_planned_off = time.localtime(time.time()+int(extend_time)*60)
+            wol_timer = threading.Timer(int(extend_time)*60,stop_wol)
+            wol_timer.start()
+#           if extend_time != 'forever' :
+#              Timer(int(extend_time)*60,stop_wol,()).start()
+      elif 'AVR_act_vol' in request.form :
+         avr_cmd = request.form['AVR_act_vol']
+         print "avr_cmd:"+avr_cmd
+         if avr_cmd == "volup" :
+            avr2809.setVolume(True)
+         elif avr_cmd == "voldown" :
+            avr2809.setVolume(False)
+         elif avr_cmd == "mute" :
+            avr2809.setMute(True)
+      elif 'AVR_act_ctn' in request.form :
+         avr_cmd = request.form['AVR_act_ctn']
+         print "avr_cmd:"+avr_cmd
+         if avr_cmd == "kodi" :
+            kodi_shell_pid = subprocess.Popen([KODI_EXE_PATH])
+      elif 'AVR_act_sel' in request.form :
+         avr_cmd = request.form['AVR_act_sel']
+         print "avr_cmd:"+avr_cmd
+         if avr_cmd in avr.AVAIL_SOURCES :
+            if avr2809.status["Power"] != "on" :
+               avr2809.setPower(True)
+            avr2809.setSource(avr_cmd)
+         elif avr_cmd == "off" :
+            avr2809.setPower(False)
    if wol_on :
       if wol_planned_off == None :
          wolstatus = "On"
@@ -133,7 +163,12 @@ def serveNasConfig():
          wolstatus = time.strftime('On till %X %x %Z', wol_planned_off)
    else :
       wolstatus = "Off"
-   return render_template('nasconf_template.html', wol_status=wolstatus)
+   avr2809.updateStatus()
+   if avr2809.status["Power"] == 'on' :
+      avrstatus = "Power: On, Source: %s" % avr2809.status["Source"]
+   else :
+      avrstatus = "Power: Off"
+   return render_template('nasconf_template.html', wol_status=wolstatus, avr_status=avrstatus)
 
 @app.route("/chart/<path:filename>")
 def serveChart(filename):

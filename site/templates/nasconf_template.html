@@ -68,9 +68,10 @@
           <tr>
             <td  style="width: 269.75px; text-align: right; font-size:50px">Choose
               source&nbsp; </td>
-            <td>
+            <td> 
               <select  style="width: 300px; height: 100px; font-size:50px"  name="AVR_act_sel"
-                 type="submit"  formethod="post">
+                formethod="post" onchange="this.form.submit()">
+                <option selected disabled>Select here</option>
                 <option  value="DVR">DVR(HEM)</option>
                 <option  value="SAT">SAT(IPTV)</option>
                 <option  value="DVD">DVD</option>
@@ -80,13 +81,13 @@
             </td>
             <td  style="width: 100px;">&nbsp;</td>
             <td  style="width: 250px;"> <button  style="width: 200px; height: 100px; font-size:50px"
-                 type="submit"  value="voldown"  formmethod="post"  name="AVR_act_sel">Vol
+                 type="submit"  value="voldown"  formmethod="post"  name="AVR_act_vol">Vol
                 -</button> </td>
             <td  style="width: 250px;"> <button  style="width: 200px; height: 100px; font-size:50px"
-                 type="submit"  value="volup"  formmethod="post"  name="AVR_act_sel">Vol
+                 type="submit"  value="volup"  formmethod="post"  name="AVR_act_vol">Vol
                 +</button> </td>
             <td  style="width: 250px;"> <button  style="width: 200px; height: 100px; font-size:50px"
-                 type="submit"  value="mute"  formmethod="post"  name="AVR_act_sel">Mute</button>
+                 type="submit"  value="mute"  formmethod="post"  name="AVR_act_vol">Mute</button>
             </td>
           </tr>
           <tr>
@@ -97,7 +98,7 @@
             <td>&nbsp;</td>
             <td  style="width: 100px;">&nbsp;</td>
             <td><button  style="width: 200px; height: 100px; font-size:50px"  type="submit"
-                 value="kodi"  formmethod="post"  name="AVR_act_sel">Launch Kodi</button></td>
+                 value="kodi"  formmethod="post"  name="AVR_act_ctn">Launch Kodi</button></td>
             <td><br>
             </td>
             <td><br>
