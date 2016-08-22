@@ -141,12 +141,12 @@ def serveNasConfig():
          elif avr_cmd == "voldown" :
             avr2809.setVolume(False)
          elif avr_cmd == "mute" :
-            avr2809.setMute(True)
+            avr2809.setMute(avr2809.status["Mute"] == "OFF")
       elif 'AVR_act_ctn' in request.form :
          avr_cmd = request.form['AVR_act_ctn']
          print "avr_cmd:"+avr_cmd
          if avr_cmd == "kodi" :
-            kodi_shell_pid = subprocess.Popen([KODI_EXE_PATH])
+            kodi_shell_pid = subprocess.Popen(["sudo", "su", "-c "+KODI_EXE_PATH, "pi"])
       elif 'AVR_act_sel' in request.form :
          avr_cmd = request.form['AVR_act_sel']
          print "avr_cmd:"+avr_cmd
@@ -156,6 +156,8 @@ def serveNasConfig():
             avr2809.setSource(avr_cmd)
          elif avr_cmd == "off" :
             avr2809.setPower(False)
+   else :
+      avr2809.updateStatus()
    if wol_on :
       if wol_planned_off == None :
          wolstatus = "On"
@@ -163,9 +165,8 @@ def serveNasConfig():
          wolstatus = time.strftime('On till %X %x %Z', wol_planned_off)
    else :
       wolstatus = "Off"
-   avr2809.updateStatus()
    if avr2809.status["Power"] == 'on' :
-      avrstatus = "Power: On, Source: %s" % avr2809.status["Source"]
+      avrstatus = "Power: On, Source: %s, Mute: %s" % (avr2809.status["Source"],avr2809.status["Mute"])
    else :
       avrstatus = "Power: Off"
    return render_template('nasconf_template.html', wol_status=wolstatus, avr_status=avrstatus)

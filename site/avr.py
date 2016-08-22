@@ -1,10 +1,11 @@
 import serial
+import time
 
 AVAIL_SOURCES = ["SAT","HDP","DVR","DVD","TV/CBL"]
 
 class avr:
     def __init__(self, portname) :
-        self.port = serial.Serial("/dev/ttyUSB0", baudrate=9600, timeout=1.5)
+        self.port = serial.Serial("/dev/ttyUSB0", baudrate=9600, timeout=0.5)
         self.port.readall()
         self.powerOn = False
         self.status = dict([])
@@ -21,6 +22,8 @@ class avr:
                 self.powerOn = False
             elif line[0:2] == "SI" :
                 self.status.update({"Source":line[2:]})
+            elif line[0:2] == "MU" :
+                self.status.update({"Mute":line[2:]})
         return  
     def readResp(self) :
         rcv = ''
@@ -31,16 +34,21 @@ class avr:
            rcv += rcvnew
         self.parseStatus(rcv)
         return rcv
-    def sendCommand(self, cmdStr) :
-        self.port.write(cmdStr+'\r')
+    def sendCommand(self, cmdStr, extraWait=0) :
+        list = cmdStr.split(',')
+        for cmd in list :
+           self.port.write(cmd+'\r')
+        if extraWait != 0 :
+           time.sleep(extraWait)
         return self.readResp()
     def updateStatus(self) :
         if not "Power" in self.status :
            self.status.update({"Power":"n.a."})
         if not "Source" in self.status :
            self.status.update({"Source":"n.a."})
-        self.sendCommand("PW?")
-        self.sendCommand("SI?")
+        if not "Mute" in self.status :
+           self.status.update({"Mute":"n.a."})
+        self.sendCommand("PW?,SI?,MU?")
         return 
     def setPower(self, powerOn) :
         if powerOn :
@@ -49,7 +57,7 @@ class avr:
            self.sendCommand("PWSTANDBY")
     def setSource(self, source) :
         if source in AVAIL_SOURCES :
-           self.sendCommand("SI"+source)
+           self.sendCommand("SI"+source,1.5)
     def setVolume(self, volUp) :
         if volUp :
            self.sendCommand("MVUP")
