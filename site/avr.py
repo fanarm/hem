@@ -3,6 +3,9 @@ import time
 
 AVAIL_SOURCES = ["SAT","HDP","DVR","DVD","TV/CBL"]
 
+MVMIN = 0
+MVMAX = 90
+
 class avr:
     def __init__(self, portname) :
         self.port = serial.Serial("/dev/ttyUSB0", baudrate=9600, timeout=0.5)
@@ -24,6 +27,8 @@ class avr:
                 self.status.update({"Source":line[2:]})
             elif line[0:2] == "MU" :
                 self.status.update({"Mute":line[2:]})
+            elif line[0:2] == "MV" and line[2] != 'M' :
+                self.status.update({"Volume":int(line[2:4])})
         return  
     def readResp(self) :
         rcv = ''
@@ -48,7 +53,9 @@ class avr:
            self.status.update({"Source":"n.a."})
         if not "Mute" in self.status :
            self.status.update({"Mute":"n.a."})
-        self.sendCommand("PW?,SI?,MU?")
+        if not "Volume" in self.status :
+           self.status.update({"Volume":MVMIN})
+        self.sendCommand("PW?,SI?,MU?,MV?")
         return 
     def setPower(self, powerOn) :
         if powerOn :
@@ -59,10 +66,16 @@ class avr:
         if source in AVAIL_SOURCES :
            self.sendCommand("SI"+source,1.5)
     def setVolume(self, volUp) :
+        vol = self.status["Volumn"]
         if volUp :
-           self.sendCommand("MVUP")
+           vol += 5
+           if vol > MVMAX :
+              vol = MVMAX
         else :
-           self.sendCommand("MVDOWN")
+           vol -= 5
+           if vol < MVMIN :
+              vol = MVMIN
+        self.sendCommand("MV"+str(vol))
     def setMute(self, muteOn) :
         if muteOn :
            self.sendCommand("MUON")

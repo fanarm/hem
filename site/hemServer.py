@@ -166,7 +166,7 @@ def serveNasConfig():
    else :
       wolstatus = "Off"
    if avr2809.status["Power"] == 'on' :
-      avrstatus = "Power: On, Source: %s, Mute: %s" % (avr2809.status["Source"],avr2809.status["Mute"])
+      avrstatus = "Power: On, Source: %s, Mute: %s, Volume: %d" % (avr2809.status["Source"],avr2809.status["Mute"],avr2809.status["Volume"])
    else :
       avrstatus = "Power: Off"
    return render_template('nasconf_template.html', wol_status=wolstatus, avr_status=avrstatus)
