@@ -59,6 +59,7 @@ def bluetoothRecovery() :
         logging.getLogger().info("hem.py tries to reconnect to AP_mi via rfcomm.") 
     elif watchdog_bt_conn_count > WATCHDOG_BT_CONN_COUNT_MAX :
         logging.getLogger().info("hem.py failed to reconnect to AP_mi after retries. Restarting the entire hem system.") 
+        time.sleep(30)
         Rebooter(operation='reboot',delay=False,reason='Hem BT watchdog',force=False)
     subprocess.call(['hciconfig',BTH_NAME,'reset'])
     time.sleep(10)
