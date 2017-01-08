@@ -66,7 +66,7 @@ class PMSensor :
                 self.port.readall()
                 ## pm1 = "n/a"
                 pm25 = "n/a"
-                sleep(2)
+                time.sleep(2)
                 self.port.readall()
                 pm25_retry_count += 1
                 self.wake()
