@@ -27,6 +27,7 @@ import subprocess
 import PMSensor
 import SHT
 import ap_mi
+from rebooter import Rebooter
 
 REGULAR_DATA_FILE = "/home/pi/hem/log/pmth.log"
 SHM_NAME_HEM_PRESENT_DATA = "/hem_data"
@@ -47,13 +48,23 @@ TARGET_SAMPLES_OVER_HOURS = [  6,  6,  6,  6,  6,  6,  12, 30, 30, 12,  12,  12,
 
 AP_MI_SENSOR_CONSTANT = 2.428
 
+WATCHDOG_BT_CONN_COUNT_MAX = 20
+
+watchdog_bt_conn_count = 0
 
 def bluetoothRecovery() :
-    logging.getLogger().info("hem.py tries to reconnect to AP_mi via rfcomm.") 
+    global watchdog_bt_conn_count
+    watchdog_bt_conn_count += 1
+    if watchdog_bt_conn_count < 2 :
+        logging.getLogger().info("hem.py tries to reconnect to AP_mi via rfcomm.") 
+    elif watchdog_bt_conn_count > WATCHDOG_BT_CONN_COUNT_MAX :
+        logging.getLogger().info("hem.py failed to reconnect to AP_mi after retries. Restarting the entire hem system.") 
+        Rebooter(operation='reboot',delay=False,reason='Hem BT watchdog',force=False)
     subprocess.call(['hciconfig',BTH_NAME,'reset'])
     time.sleep(10)
     proc = subprocess.Popen(['rfcomm','connect',BTH_NAME,BTS_ADDR])
-    logging.getLogger().info("Rfcomm process %d started",proc.pid) 
+    if watchdog_bt_conn_count < 2 :
+        logging.getLogger().info("Rfcomm process %d started",proc.pid) 
     print_log(PID_FILE_BT_RFCOMM,'w',repr(proc.pid))
     #TODO: if succeeds, need update pid file for rfcomm so that the process could be killed when stopping hem.
 
@@ -95,6 +106,7 @@ def calculate_sleep_target(timenow) :
         return interval
 
 def startMonitoring() :
+    global watchdog_bt_conn_count
     logging.basicConfig(filename=LOG_FILE,level=logging.DEBUG,format='%(asctime)s %(levelname)s %(message)s')
     try:
         GPIO.setmode(GPIO.BCM)
@@ -122,6 +134,9 @@ def startMonitoring() :
                     bluetoothRecovery()
                     rec = rec + "APMI:Fail\n"
                 else :
+                    if watchdog_bt_conn_count > 0 :
+                        logging.getLogger().info("hem.py recovers BT connection with AP_mi successfully after "+str(watchdog_bt_conn_count)+" retries.") 
+                        watchdog_bt_conn_count = 0
                     rec = rec + "APMI:OK\n"
             else :
                 bluetoothRecovery()
