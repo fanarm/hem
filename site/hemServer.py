@@ -30,6 +30,8 @@ import avr
 import logging
 from logging import Formatter
 
+SERVER_PORT = 30933
+
 LOG_FILE_PATH = "/home/pi/hem/log/"
 REGULAR_LOG_REGEX = "(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) PM2\.5:(\d+) Temp:(\d+) RH:(\d+)% APMI:(\w+)"
 SHM_NAME_HEM_PRESENT_DATA = "/hem_data"
@@ -194,7 +196,7 @@ if __name__ == "__main__" :
    app.logger.addHandler(file_handler)
    app.logger.setLevel(logging.DEBUG)
    app.logger.debug("HEM server started.")
-   app.run(debug=True, use_debugger=True, host='0.0.0.0')
+   app.run(debug=True, use_debugger=True, host='0.0.0.0',port=SERVER_PORT)
 
 
 
