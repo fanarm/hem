@@ -29,6 +29,7 @@ class ap_mi :
     def open(self) :
         try:
             self.port = serial.Serial(self.devname, baudrate=9600,timeout=1.5)
+            self.port.readall()
             self.opened = True
         except serial.SerialException :
             logging.getLogger().exception("Bluetooth serial exception when opening the port.") 
@@ -53,7 +54,7 @@ class ap_mi :
             if len(rxstr)>2 :
                 return (ord(rxstr[2])==raw)
             else :
-                logging.getLogger().warning("Bluetooth serial read error after writing. Less data than expected.")
+                logging.getLogger().warning("Bluetooth serial read error after writing. Less data("+repr(len(rxstr))+") than expected(5).")
                 return False
         except serial.SerialException :
             logging.getLogger().exception("Bluetooth serial exception when accessing the port.") 

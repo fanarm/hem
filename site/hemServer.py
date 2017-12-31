@@ -112,7 +112,8 @@ def serveHistory():
 def serveLog():
    logfile = open(LOG_FILE_PATH+"hem.log",'r')
    lines = logfile.readlines()
-   return render_template('log_template.html', entries=lines)
+   lines_to_show = lines[-50:]
+   return render_template('log_template.html', entries=lines_to_show)
 
 @app.route("/config.html")
 @app.route("/nasconf.html", methods=['GET','POST'])
