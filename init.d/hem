@@ -43,6 +43,7 @@ case "$1" in
 		HEMD_PID=$!
 		echo $HEMD_PID > $HEMD_PIDFILE
 		python $HEMSERVER_PYM >> $HEMSERVER_LOGFILE 2>&1 &
+		#$HEMSERVER_PYM &
 		HEMSERVER_PID=$!
 		echo $HEMSERVER_PID > $HEMSERVER_PIDFILE
 		rfcomm connect hci0 $HEM_BT_APMI_ADDR &
@@ -65,7 +66,8 @@ case "$1" in
 		fi
 		rm -f $HEMD_PIDFILE 
                 if [ -f $HEMSERVER_PIDFILE ]; then
-			echo "Killing HEM server `cat $HEMSERVER_PIDFILE`..."
+			echo "Killing HEM server and its descendents `cat $HEMSERVER_PIDFILE`..."
+			pkill -P `cat $HEMSERVER_PIDFILE`
                         kill `cat $HEMSERVER_PIDFILE`
                 else
                         echo "$HEMSERVER_PIDFILE not found"
